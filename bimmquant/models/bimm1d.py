@@ -13,7 +13,7 @@ class BIMM1D(torch.nn.Module): #inherits from Module class
         super(BIMM1D, self).__init__() #initializes superclass, does set-up
 
         self.n_phases = n_phases
-        self.n_interfaces = int(0.5*(self.n_phases-1)*self.n_phases)#all different interface types
+        self.n_interfaces = int(scipy.special.comb(self.n_phases, 2))#all different interface types
 
         self.I = torch.nn.Parameter(torch.Tensor(self.n_phases))
         self.sigma_b = torch.nn.Parameter(torch.Tensor(1))
