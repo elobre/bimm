@@ -52,11 +52,14 @@ In the folder containing `setup.py`, run
 This code was tested on Ubuntu 18.04.4 LTS using Pytorch version 1.3.1.
 
 
-### Reference
+### Citations
 
 If you find this code useful in your research, please consider citing:
 
-[1] Brenne, E. O., Dahl, V. A., & Jørgensen, P. S. (2020). *A Physical Model for Microstructural Characterization and Segmentation of 3D Tomography Data*. [arXiv:2009.07218](https://arxiv.org/abs/2009.07218)
+[1] Brenne, E. O., Dahl, V. A., & Jørgensen, P. S. *A Physical Model for Microstructural Characterization and Segmentation of 3D Tomography Data*. 
+Materials Characterization, vol. 171, Jan. 2021, p. 110796, [doi:10.1016/j.matchar.2020.110796](https://doi.org/10.1016/j.matchar.2020.110796).
+
+For an open-access version of the accepted manuscript, see [arXiv:2009.07218](https://arxiv.org/abs/2009.07218).
 
 
 ## UPDATE: Huge speed-up for BIMM2D code
