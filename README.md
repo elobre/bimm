@@ -57,3 +57,10 @@ This code was tested on Ubuntu 18.04.4 LTS using Pytorch version 1.3.1.
 If you find this code useful in your research, please consider citing:
 
 [1] Brenne, E. O., Dahl, V. A., & Jørgensen, P. S. (2020). *A Physical Model for Microstructural Characterization and Segmentation of 3D Tomography Data*. [arXiv:2009.07218](https://arxiv.org/abs/2009.07218)
+
+
+## UPDATE: Huge speed-up for BIMM2D code
+
+Since the initial release for the code and the paper, an improved implementation of the BIMM2D has lead to a huge speed-up of the BIMM2D model fitting: What previously took 4 min 2 sec, now finished in 15 sec (2 phases, batch size 50, 1000 MC samples, 2000 iterations).
+
+In particular, the speed-up is due to an improved implementation of the modified Bessel function of first kind. Earlier, a general `scipy`-implementation was used ([`scipy.special.ive`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.ive.html)). Now, this is replaced by a special-case ($\mu = 0.5$) where the analytic expression can be implemented in `pytorch` directly - see [this](https://github.com/elobre/bimm/commit/a33e308026f564fd03561396d7f8e61577f3e2fb) commit. Since no approximations are used, results produced with the new code are identical to the results presented in the paper. Only the timings mentioned in Section 5.1 will be different with the latest code release (4 min -> 15 sec). 
