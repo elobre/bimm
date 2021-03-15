@@ -6,19 +6,15 @@ import torch.nn.functional as F
 
 
 
-class ExpModifiedBesselFn(torch.autograd.Function):
-    #USAGE: exp_scaled_modified_bessel = ExpModifiedBesselFn.apply
-    @staticmethod
-    def forward(ctx, inp, nu):
-        ctx._nu = nu
-        ctx.save_for_backward(inp)
-        return torch.from_numpy(scipy.special.ive(nu, inp.detach().numpy()))
-    @staticmethod
-    def backward(ctx, grad_out):
-        inp, = ctx.saved_tensors
-        nu = ctx._nu
-        # formula is from Wikipedia
-        return 0.5* grad_out *(ExpModifiedBesselFn.apply(inp, nu - 1.0)+ExpModifiedBesselFn.apply(inp, nu + 1.0) - 2*ExpModifiedBesselFn.apply(inp, nu )), None
+def logsinh(x):
+    '''Numerically stable implementation of log(sinh(x)) (which otherwise fails at x>~90)'''
+    s = torch.sign(x) * x
+    p = -torch.exp(-2 * s)
+    return - math.log(2) + s + torch.log1p(p)
+
+def log_bessel_05(x):
+    '''I_0.5(x) = sqrt(2/(pi x)) sinh(x)'''
+    return 0.5*math.log(2) - 0.5*torch.log(math.pi*x) + logsinh(x)
 
 
 def G(I, Ia, Ib, sigma_b):
@@ -105,12 +101,10 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
 
 
         G_ = G(I, Ia, Ib, sigma_b)
-
-        exp_scaled_modified_bessel = ExpModifiedBesselFn.apply
-        exp_scaled_bessel_term = exp_scaled_modified_bessel(2*v*G_/(sigma_n**2*(1-rho)), 0.5)
+        log_bessel_term = log_bessel_05(2*v*G_/(sigma_n**2*(1-rho)))
 
         return math.log(2) -2*torch.log(sigma_n*torch.sqrt(1-rho)) + (3/2)*torch.log(v) - 0.5*torch.log(G_) \
-        + torch.log(exp_scaled_bessel_term) + 2*v*G_/(sigma_n**2*(1-rho))  -(v**2+G_**2)/(sigma_n**2*(1-rho))
+        + log_bessel_term  -(v**2+G_**2)/(sigma_n**2*(1-rho))
 
 
     #Interface components
