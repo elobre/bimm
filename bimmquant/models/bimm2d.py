@@ -15,11 +15,10 @@ def logsinh(x):
 def log_bessel_05(x):
     '''I_0.5(x) = sqrt(2/(pi x)) sinh(x)'''
     return 0.5*math.log(2) - 0.5*torch.log(math.pi*x) + logsinh(x)
-
+    
 
 def G(I, Ia, Ib, sigma_b):
     return ((Ib-Ia)/torch.sqrt(2*math.pi*sigma_b**2))*torch.exp(-( torch.erfinv( (  2*(I-Ia)/(Ib-Ia) -1 ) )**2))
-
 
 
 
@@ -67,7 +66,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
         self.r.data = 0.5 * torch.log((1 + rho) / (1 - rho)) #arctanh
 
 
-
     @property
     def log_w_sm(self):
       return F.log_softmax(self.W, dim=0)
@@ -79,7 +77,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
     @property
     def rho(self):
       return torch.tanh(self.r)
-
 
 
     #Interior components
@@ -98,7 +95,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
 
     @staticmethod
     def log_p_v_cond_I(v, I, Ia, Ib, sigma_b, sigma_n, rho):
-
 
         G_ = G(I, Ia, Ib, sigma_b)
         log_bessel_term = log_bessel_05(2*v*G_/(sigma_n**2*(1-rho)))
@@ -123,7 +119,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
                     + self.log_p_v_cond_I(v, In.unsqueeze(-1), Ia, Ib, sigma_b, sigma_n, rho), dim=0)
 
 
-
     def log_p_u_v(self, u, v, n_MC_components):
         '''Combination of all model components'''
 
@@ -141,9 +136,7 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
         log_p = torch.cat(log_p_list, 0)
 
         return torch.logsumexp( self.log_w_sm.unsqueeze(-1) + log_p, dim=0) #logsumexp for numerical stability
-
-
-
+        
 
     def forward(self, u, v, n_MC_components):
         ''' Loss: sum over all datapoints $u_m$, $v_m$, $m = 1, 2, ..., M$: $$ L = - \frac{1}{M} \sum_m^M log(p(u_m, v_m)) $$ '''
