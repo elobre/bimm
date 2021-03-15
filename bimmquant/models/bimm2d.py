@@ -6,24 +6,19 @@ import torch.nn.functional as F
 
 
 
-class ExpModifiedBesselFn(torch.autograd.Function):
-    #USAGE: exp_scaled_modified_bessel = ExpModifiedBesselFn.apply
-    @staticmethod
-    def forward(ctx, inp, nu):
-        ctx._nu = nu
-        ctx.save_for_backward(inp)
-        return torch.from_numpy(scipy.special.ive(nu, inp.detach().numpy()))
-    @staticmethod
-    def backward(ctx, grad_out):
-        inp, = ctx.saved_tensors
-        nu = ctx._nu
-        # formula is from Wikipedia
-        return 0.5* grad_out *(ExpModifiedBesselFn.apply(inp, nu - 1.0)+ExpModifiedBesselFn.apply(inp, nu + 1.0) - 2*ExpModifiedBesselFn.apply(inp, nu )), None
+def logsinh(x):
+    '''Numerically stable implementation of log(sinh(x)) (which otherwise fails at x>~90)'''
+    s = torch.sign(x) * x
+    p = -torch.exp(-2 * s)
+    return - math.log(2) + s + torch.log1p(p)
 
+def log_bessel_05(x):
+    '''I_0.5(x) = sqrt(2/(pi x)) sinh(x)'''
+    return 0.5*math.log(2) - 0.5*torch.log(math.pi*x) + logsinh(x)
+    
 
 def G(I, Ia, Ib, sigma_b):
     return ((Ib-Ia)/torch.sqrt(2*math.pi*sigma_b**2))*torch.exp(-( torch.erfinv( (  2*(I-Ia)/(Ib-Ia) -1 ) )**2))
-
 
 
 
@@ -71,7 +66,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
         self.r.data = 0.5 * torch.log((1 + rho) / (1 - rho)) #arctanh
 
 
-
     @property
     def log_w_sm(self):
       return F.log_softmax(self.W, dim=0)
@@ -83,7 +77,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
     @property
     def rho(self):
       return torch.tanh(self.r)
-
 
 
     #Interior components
@@ -103,14 +96,11 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
     @staticmethod
     def log_p_v_cond_I(v, I, Ia, Ib, sigma_b, sigma_n, rho):
 
-
         G_ = G(I, Ia, Ib, sigma_b)
-
-        exp_scaled_modified_bessel = ExpModifiedBesselFn.apply
-        exp_scaled_bessel_term = exp_scaled_modified_bessel(2*v*G_/(sigma_n**2*(1-rho)), 0.5)
+        log_bessel_term = log_bessel_05(2*v*G_/(sigma_n**2*(1-rho)))
 
         return math.log(2) -2*torch.log(sigma_n*torch.sqrt(1-rho)) + (3/2)*torch.log(v) - 0.5*torch.log(G_) \
-        + torch.log(exp_scaled_bessel_term) + 2*v*G_/(sigma_n**2*(1-rho))  -(v**2+G_**2)/(sigma_n**2*(1-rho))
+        + log_bessel_term  -(v**2+G_**2)/(sigma_n**2*(1-rho))
 
 
     #Interface components
@@ -127,7 +117,6 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
         return   -math.log(N) \
                     + torch.logsumexp( self.log_p_u_cond_I(u, In.unsqueeze(-1), sigma_n) \
                     + self.log_p_v_cond_I(v, In.unsqueeze(-1), Ia, Ib, sigma_b, sigma_n, rho), dim=0)
-
 
 
     def log_p_u_v(self, u, v, n_MC_components):
@@ -147,9 +136,7 @@ class BIMM2D(torch.nn.Module): #inherits from Module class
         log_p = torch.cat(log_p_list, 0)
 
         return torch.logsumexp( self.log_w_sm.unsqueeze(-1) + log_p, dim=0) #logsumexp for numerical stability
-
-
-
+        
 
     def forward(self, u, v, n_MC_components):
         ''' Loss: sum over all datapoints $u_m$, $v_m$, $m = 1, 2, ..., M$: $$ L = - \frac{1}{M} \sum_m^M log(p(u_m, v_m)) $$ '''
